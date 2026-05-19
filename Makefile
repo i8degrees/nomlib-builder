@@ -41,12 +41,13 @@ amd64-copy-libs:
 				bash -c 'if findmnt /vendor; then cp -av /tmp/vendor/* /vendor; fi'
 .PHONY: amd64-run-libs
 
-amd64-build-push:
-	@docker build templates/amd64/base -t
-		$(REPOSITORY):$(TAG)-amd64-base --push
-	@docker build templates/amd64/libs -t
-		$(REPOSITORY):$(TAG)-amd64-libs --push
-.PHONY: amd64-push
+amd64-base-push:
+	@docker build templates/amd64/base \
+		-t $(REPOSITORY):$(TAG)-amd64 --push
+
+amd64-libs-push:
+	@docker build templates/amd64/libs \
+		-t $(REPOSITORY):$(TAG)-amd64-libs --push
 
 # Testing Tasks (inside the container)
 
@@ -251,7 +252,7 @@ buildx:
 		-f Dockerfile .
 .PHONY: buildx
 
-build-debian:
+run-debian:
 	@docker run --rm -it \
 		-v $(pwd)/templates:/templates \
 		-w /templates \
