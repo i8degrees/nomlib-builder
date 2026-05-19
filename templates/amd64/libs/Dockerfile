@@ -1,18 +1,15 @@
 # nomlib-builder:0.13.1-amd64-libs
 #
 
-ARG VERSION=0.13.1-amd64-libs
+ARG VERSION=0.13.1-amd64
+ARG VERSION_TAG=0.13.1-amd64-libs
 
-
-# FIXME
-#FROM i8degrees/nomlib-builder:${VERSION}
 FROM i8degrees/nomlib-builder:${VERSION}
 LABEL   version="0.13.1" \
-        tag="i8degrees/nomlib-builder:${VERSION}" \
+        tag="i8degrees/nomlib-builder:${VERSION_TAG}" \
         description="Docker image for cross-compiling nomlib for Linux (musl libc) & macOS (osxcross)." \
         maintainer="Jeffrey Carpenter <i8degrees@gmail.com>"
 
-ARG VERSION=0.13.1-amd64-libs
 #ARG INSTALL_PREFIX=/usr
 ARG INSTALL_PREFIX=/tmp/vendor/linux/sdl2
 ARG BUILD_TYPE=Rel
@@ -22,16 +19,12 @@ ARG SDL2_TTF_VERSION=2.0.12
 ARG SDL2_IMAGE_VERSION=2.0.0
 #ARG LIBROCKET_VERSION=1.3.0
 
-ARG VERSION=0.13.1-amd64-libs
+ARG VERSION_TAG=0.13.1-amd64-libs
 ENV LIBZ_SYS_STATIC=1
 
 # sdl2
 
-#LABEL tag="i8degrees/sdl2:0.13.1" \
-      #description="SDL2 v2.24.x dependency of nomlib" \
-      #maintainer="Jeffrey Carpenter <1329364+i8degrees@users.noreply.github.com>"
 WORKDIR /
-RUN [ -d /tmp/sdl2.git ] && rm -rf /tmp/sdl2.git
 WORKDIR /tmp/sdl2.git
 RUN apt-get update; \
     apt-get install -y --no-install-recommends \
@@ -112,7 +105,6 @@ RUN make -j1 install
 
 # sdl2_ttf
 
-RUN [ -d /tmp/sdl2_ttf.git ] && rm -rf /tmp/sdl2_ttf.git
 WORKDIR /tmp/sdl2_ttf.git
 RUN apt-get update; \
     apt-get install -y --no-install-recommends \
@@ -156,9 +148,9 @@ RUN \
 RUN mkdir -p "/tmp/vendor/linux/freetype/bin" "/tmp/vendor/linux/freetype/lib/pkgconfig"
 
 # FIXME(JEFF): WTF? Why did this suddenly break on me?
-#RUN [ ! -f "/tmp/vendor/linux/freetype/bin/freetype-config" ] && curl -Lv --output /tmp/vendor/linux/freetype/bin/freetype-config "https://nomlib.479831.xyz/frs/linux/freetype/bin/freetype-config"
-#RUN [ ! -f "/tmp/vendor/linux/freetype/lib/pkgconfig/freetype2.pc" ] && curl -Lv --output /tmp/vendor/linux/freetype/lib/pkgconfig/freetype2.pc "https://nomlib.479831.xyz/frs/linux/freetype/lib/pkgconfig/freetype2.pc"
-#RUN chmod +x "/tmp/vendor/linux/freetype/bin/freetype-config"
+RUN [ ! -f "/tmp/vendor/linux/freetype/bin/freetype-config" ] && curl -Lv --output /tmp/vendor/linux/freetype/bin/freetype-config "https://nomlib.479831.xyz/frs/linux/freetype/bin/freetype-config"
+RUN [ ! -f "/tmp/vendor/linux/freetype/lib/pkgconfig/freetype2.pc" ] && curl -Lv --output /tmp/vendor/linux/freetype/lib/pkgconfig/freetype2.pc "https://nomlib.479831.xyz/frs/linux/freetype/lib/pkgconfig/freetype2.pc"
+RUN chmod +x "/tmp/vendor/linux/freetype/bin/freetype-config"
 
 #--with-sdl-prefix=/tmp/vendor/linux/sdl2 \
 RUN ./autogen.sh && autoupdate; \
@@ -172,7 +164,6 @@ RUN make -j1 install
 
 # sdl2_image
 
-RUN [ -d /tmp/sdl2_image.git ] && rm -rf /tmp/sdl2_image.git
 WORKDIR /tmp/sdl2_image.git
 RUN apt-get update; \
     apt-get install -y --no-install-recommends \
@@ -228,7 +219,6 @@ RUN make -j1 install
 
 # libRocket
 
-RUN [ -d /tmp/librocket.git ] && rm -rf /tmp/librocket.git
 RUN apt-get update; \
     apt-get install -y --no-install-recommends \
     autoconf \
@@ -287,7 +277,6 @@ RUN make -j1 install
 
 # libsndfile
 
-RUN [ -d /tmp/libsndfile.git ] && rm -rf /tmp/libsndfile.git
 RUN apt-get update; \
     apt-get install -y --no-install-recommends \
     autoconf \
@@ -349,7 +338,6 @@ RUN make -j1 install
 # freetype2
 
 # gtest
-#RUN [ -d /tmp/gtest.git ] && rm -rf /tmp/gtest.git
 WORKDIR /tmp/gtest.git
 RUN git clone "https://github.com/google/googletest" \
   /tmp/gtest.git
@@ -388,7 +376,8 @@ RUN apt-get update; \
     make \
     patch \
     pkg-config \
-    python \
+    python3 \
+    python3-pip \
     xdg-utils \
     zip \
     zlib1g-dev \
@@ -400,6 +389,7 @@ RUN apt-get update; \
 RUN git clone \
   "https://github.com/open-source-parsers/jsoncpp.git" \
 /tmp/jsoncpp.git
+RUN mkdir -p /tmp/jsoncpp.git/dist
 WORKDIR /tmp/jsoncpp.git
 #RUN git switch -c svn-release-0.6.0-rc2
 # NOTE(JEFF): build compatible with svn-release-0.6.0-rc2
@@ -418,7 +408,9 @@ RUN python3 amalgamate.py
 # /vendor is a bind mount that is only available when the end-user
 # opts to run this image with a `-v` param
 #RUN if findmnt /vendor 1>/dev/null; then  diff -r /jsoncpp/dist /vendor/common/jsoncpp; fi
-COPY ["/tmp/jsoncpp.git/dist", "/tmp/vendor/linux/common/jsoncpp"]
+RUN mkdir -p /tmp/vendor/linux/common/jsoncpp
+RUN cp -av /tmp/jsoncpp.git/dist/* /tmp/vendor/linux/common/jsoncpp
+#COPY ["/tmp/jsoncpp.git/dist/*", "/tmp/vendor/linux/common/jsoncpp"]
 
 # NOTE(JEFF): The following configuration produces this project
 # as a shared library
@@ -451,7 +443,7 @@ RUN git clone \
 /tmp/rapidxml.git
 WORKDIR /tmp/rapidxml.git
 #RUN git checkout master && mkdir build dist
-RUN git switch -c 1x && mkdir build dist
+RUN git switch -c 1x && mkdir build #dist
 
 WORKDIR /tmp/rapidxml.git/build
 RUN \
@@ -465,7 +457,9 @@ WORKDIR /tmp/rapidxml.git
 #  /rapidxml/RapidXML/*.h \
 # /rapidxml/dist
 # FIXME
-COPY ["/rapidxml/RapidXML/*", "/tmp/vendor/linux/common/rapidxml"]
+RUN mkdir -p /tmp/vendor/linux/common/rapidxml
+RUN cp -av /tmp/rapidxml.git/RapidXML/* /tmp/vendor/linux/common/rapidxml
+#COPY ["/rapidxml/RapidXML/*", "/tmp/vendor/linux/common/rapidxml"]
 
 # /vendor is a bind mount that is only available when the end-user
 # opts to run this image with a `-v` param
