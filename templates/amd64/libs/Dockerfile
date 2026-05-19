@@ -343,9 +343,6 @@ RUN cmake \
 RUN make
 RUN make -j1 install
 
-# jsoncpp
-
-# rapidxml
 
 # openal
 
@@ -370,3 +367,107 @@ RUN cmake \
 ..
 RUN make
 RUN make -j1 install
+
+# jsoncpp
+
+WORKDIR /tmp/jsoncpp.git
+RUN apt-get update; \
+    apt-get install -y --no-install-recommends \
+    autoconf \
+    autogen \
+    automake \
+    build-essential \
+    bzip2 \
+    cmake \
+    curl \
+    file \
+    git \
+    git-lfs \
+    libc6 \
+    libtool \
+    make \
+    patch \
+    pkg-config \
+    python \
+    xdg-utils \
+    zip \
+    zlib1g-dev \
+    zstd \
+    zstd \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && true
+RUN git clone \
+  "https://github.com/open-source-parsers/jsoncpp.git" \
+/tmp/jsoncpp.git
+WORKDIR /tmp/jsoncpp.git
+#RUN git switch -c svn-release-0.6.0-rc2
+# NOTE(JEFF): build compatible with svn-release-0.6.0-rc2
+# branch, but not binary compatible
+RUN git switch -c v0.7.0 && mkdir build
+
+WORKDIR /tmp/jsoncpp.git/build
+RUN \
+  clang++ --version >> clang.version; \
+  cmake --version >> cmake.version;
+WORKDIR /tmp/jsoncpp.git
+RUN python3 amalgamate.py
+# IMPORTANT(JEFF): The contents of dist is our install prefix
+#   /jsoncpp/dist/ -> /vendor/common/jsoncpp
+
+# /vendor is a bind mount that is only available when the end-user
+# opts to run this image with a `-v` param
+#RUN if findmnt /vendor 1>/dev/null; then  diff -r /jsoncpp/dist /vendor/common/jsoncpp; fi
+COPY ["/tmp/jsoncpp.git/dist", "/tmp/vendor/linux/common/jsoncpp"]
+
+# NOTE(JEFF): The following configuration produces this project
+# as a shared library
+#RUN cmake \
+#  -DCMAKE_INSTALL_PREFIX=/tmp/vendor/common/jsoncpp \
+#..
+#RUN make
+#RUN make -j1 install
+
+# rapidxml
+
+WORKDIR /tmp/rapidxml.git
+RUN apt-get update; \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    file \
+    git \
+    make \
+    patch \
+    pkg-config \
+    zip \
+    zlib1g-dev \
+    zstd \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && true
+RUN git clone \
+  "https://github.com/Fe-Bell/RapidXML" \
+/tmp/rapidxml.git
+WORKDIR /tmp/rapidxml.git
+#RUN git checkout master && mkdir build dist
+RUN git switch -c 1x && mkdir build dist
+
+WORKDIR /tmp/rapidxml.git/build
+RUN \
+  clang++ --version >> clang.version; \
+  cmake --version >> cmake.version;
+WORKDIR /tmp/rapidxml.git
+# alt install
+#COPY \
+#/rapidxml/RapidXML/*.cpp \
+#  /rapidxml/RapidXML/*.hpp \
+#  /rapidxml/RapidXML/*.h \
+# /rapidxml/dist
+# FIXME
+COPY ["/rapidxml/RapidXML/*", "/tmp/vendor/linux/common/rapidxml"]
+
+# /vendor is a bind mount that is only available when the end-user
+# opts to run this image with a `-v` param
+#RUN if findmnt /vendor 1>/dev/null; then diff -r /rapidxml/dist /vendor/common/rapidxml/; fi
+
