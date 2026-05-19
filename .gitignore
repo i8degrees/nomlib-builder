@@ -1,3 +1,4 @@
 
-dist/
-!dist/.placeholder
+vendor/
+!vendor/.placeholder
+

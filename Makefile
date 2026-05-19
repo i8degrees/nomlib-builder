@@ -12,8 +12,8 @@ amd64-build:
 
 amd64-run:
 	@docker run --rm -it \
-		-v $(PWD)/dist:/deps \
-		-w /deps \
+		-v $(PWD)/vendor:/vendor \
+		-w /tmp/vendor \
 			$(REPOSITORY):$(TAG)-amd64 \
 				bash
 .PHONY: amd64-run
@@ -35,10 +35,10 @@ amd64-build-libs:
 
 amd64-copy-libs:
 	@docker run --rm -it \
-		-v $(PWD)/dist:/deps \
+		-v $(PWD)/vendor:/vendor \
 		-w /tmp/vendor \
 			$(REPOSITORY):$(TAG)-amd64-libs \
-				bash -c 'if findmnt /deps; then cp -av /tmp/vendor/* /deps; fi'
+				bash -c 'if findmnt /vendor; then cp -av /tmp/vendor/* /vendor; fi'
 .PHONY: amd64-run-libs
 
 amd64-build-push:
