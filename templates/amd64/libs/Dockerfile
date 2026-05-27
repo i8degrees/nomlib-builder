@@ -1,467 +1,423 @@
 # nomlib-builder:0.13.1-amd64-libs
 #
+# syntax=docker/dockerfile:1
+#
 
 ARG VERSION=0.13.1-amd64
-ARG VERSION_TAG=0.13.1-amd64-libs
 
 FROM i8degrees/nomlib-builder:${VERSION}
 LABEL   version="0.13.1" \
-        tag="i8degrees/nomlib-builder:${VERSION_TAG}" \
+        tag="i8degrees/nomib-builder:${VERSION}-libs" \
         description="Docker image for cross-compiling nomlib for Linux (musl libc) & macOS (osxcross)." \
         maintainer="Jeffrey Carpenter <i8degrees@gmail.com>"
 
-#ARG INSTALL_PREFIX=/usr
-ARG INSTALL_PREFIX=/tmp/vendor/linux/sdl2
+# third-party dependencies for engine
+ARG INSTALL_PREFIX="/app/vendor"
+ARG INSTALL_HOST="linux"
 ARG BUILD_TYPE=Rel
-ARG SDL2_VERSION=2.24.x
-ARG SDL2_TTF_VERSION=2.0.12
-#ARG FREETYPE_VERSION=
-ARG SDL2_IMAGE_VERSION=2.0.0
-#ARG LIBROCKET_VERSION=1.3.0
 
-ARG VERSION_TAG=0.13.1-amd64-libs
-ENV LIBZ_SYS_STATIC=1
-
-# sdl2
+ENV INSTALL_PREFIX="${INSTALL_PREFIX}"
+ENV INSTALL_HOST="${INSTALL_HOST}"
+ENV BUILD_TYPE="${BUILD_TYPE}"
 
 WORKDIR /
-WORKDIR /tmp/sdl2.git
+#FROM i8degrees/nomlib-builder:${VERSION} AS freetype
+# freetype v2.14.3
+ARG WORKDIR="/tmp/freetype.git"
+
+# env
+ARG VERSION="2.14.3"
+ARG GIT_VERSION="VER-2-14-3"
+ARG GIT_URL="https://gitlab.freedesktop.org/freetype/freetype"
+# TODO: add github mirror URL
+
+# configure
+WORKDIR ${WORKDIR}
 RUN apt-get update; \
     apt-get install -y --no-install-recommends \
-    autoconf \
-    autogen \
-    automake \
-    build-essential \
-    bzip2 \
-    cmake \
-    curl \
-    doxygen \
-    file \
-    git \
-    git-lfs \
-    graphviz \
-    libasound2t64 \
-    libc6 \
+    libharfbuzz-dev \
+    libharfbuzz0b \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && true
+RUN git clone "${GIT_URL}" "${WORKDIR}"
+RUN git checkout "${GIT_VERSION}"
+# build
+RUN \
+  sh ./autogen.sh; \
+  ./configure \
+    --prefix="${INSTALL_PREFIX}/${INSTALL_HOST}/freetype" \
+    --enable-freetype-config
+RUN make ANSIFLAGS=""
+# install
+RUN make -j1 install && rm -rf ${WORKDIR}
+
+# sdl2 v2.24.x
+#FROM i8degrees/nomlib-builder:${VERSION} AS sdl2
+
+ARG WORKDIR=/tmp/sdl2.git
+# env
+ARG GIT_URL="https://github.com/libsdl-org/SDL.git"
+ARG GIT_TAG=release-2.24.x
+# configure
+WORKDIR ${WORKDIR}
+RUN apt-get update; \
+    apt-get install -y --no-install-recommends \
     libdecor-0-0 \
     libdrm2 \
-    libegl-dev \
-    libfreetype-dev \
-    libfreetype6 \
     libgbm1 \
-    libgl-dev \
-    libgles-dev \
-    libglu1-mesa-dev \
     libpulse0 \
     libsamplerate0 \
     libwayland-client0 \
     libwayland-cursor0 \
-    libwayland-egl1 \
     libx11-6 \
     libxcursor1 \
-    libxext6 \
     libxext-dev \
+    libxext6 \
     libxfixes3 \
     libxi6 \
     libxkbcommon0 \
     libxrandr2 \
     libxss1 \
-    make \
-    mesa-common-dev \
-    patch \
-    pkg-config \
-    python3 \
-    python3-pip \
-    xdg-utils \
-    xdg-utils \
-    zip \
-    zstd \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && true
-RUN git clone \
-  "https://github.com/libsdl-org/SDL.git" /tmp/sdl2.git
+RUN git clone ${GIT_URL} ${WORKDIR}
+RUN git checkout ${GIT_TAG} && mkdir build
 
-# FIXME
-#RUN git checkout release-"${SDL2_VERSION}"
-RUN git checkout release-2.24.x && mkdir build
-
-WORKDIR /tmp/sdl2.git/build
-#-DCMAKE_INSTALL_PREFIX=/tmp/vendor/linux/sdl2 \
+# build
+WORKDIR ${WORKDIR}/build
 RUN cmake \
-  -DCMAKE_C_COMPILER=/usr/bin/clang \
-  -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
-  -DCMAKE_INSTALL_PREFIX=/usr \
+  -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \  
+  -DCMAKE_C_COMPILER=${CC} \
+  -DCMAKE_CXX_COMPILER=${CXX} \
+  -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}/${INSTALL_HOST}/sdl2 \
 ..
 #-DCMAKE_WAYLAND=on \
 #-DVIDEO_KMSDRM=off \
 #-DWAYLAND_SHARED=off \
-#..
-RUN make
-RUN make -j1 install
-# FIXME
-RUN cmake -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} ..
-RUN make
-RUN make -j1 install
+# install
+RUN make -j1 install && rm -rf ${WORKDIR}
 
 # sdl2_ttf
+#FROM i8degrees/nomlib-builder:${VERSION} AS sdl2-ttf
 
-WORKDIR /tmp/sdl2_ttf.git
+ARG WORKDIR=/tmp/sdl2_ttf.git
+
+# env
+ARG GIT_TAG=release-2.0.12
+ARG GIT_URL="https://github.com/libsdl-org/SDL_ttf.git"
+
+WORKDIR ${WORKDIR}
 RUN apt-get update; \
     apt-get install -y --no-install-recommends \
-    autoconf \
-    autogen \
-    automake \
-    build-essential \
-    bzip2 \
-    cmake \
-    curl \
-    file \
-    git \
-    git-lfs \
-    libc6 \
-    libfreetype-dev \
-    libfreetype6 \
     libharfbuzz-dev \
     libharfbuzz0b \
-    libtool \
-    make \
-    pandoc \
-    patch \
-    pkg-config \
-    python3 \
-    python3-pip \
-    xdg-utils \
-    zip \
-    zstd \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && true
-RUN git clone \
-  "https://github.com/libsdl-org/SDL_ttf.git" /tmp/sdl2_ttf.git
-RUN git checkout release-${SDL2_TTF_VERSION}
+RUN git clone ${GIT_URL} ${WORKDIR}
+RUN git checkout ${GIT_TAG}
 
 RUN \
-  clang++ --version >> clang.version; \
-  cmake --version >> cmake.version;
-
-# FIXME(JEFF): --with-sdl-prefix= needs to be updated to /usr
-RUN mkdir -p "/tmp/vendor/linux/freetype/bin" "/tmp/vendor/linux/freetype/lib/pkgconfig"
-
-# FIXME(JEFF): WTF? Why did this suddenly break on me?
-RUN [ ! -f "/tmp/vendor/linux/freetype/bin/freetype-config" ] && curl -Lv --output /tmp/vendor/linux/freetype/bin/freetype-config "https://nomlib.479831.xyz/frs/linux/freetype/bin/freetype-config"
-RUN [ ! -f "/tmp/vendor/linux/freetype/lib/pkgconfig/freetype2.pc" ] && curl -Lv --output /tmp/vendor/linux/freetype/lib/pkgconfig/freetype2.pc "https://nomlib.479831.xyz/frs/linux/freetype/lib/pkgconfig/freetype2.pc"
-RUN chmod +x "/tmp/vendor/linux/freetype/bin/freetype-config"
-
-#--with-sdl-prefix=/tmp/vendor/linux/sdl2 \
-RUN ./autogen.sh && autoupdate; \
+  cp -av "${INSTALL_PREFIX}/${INSTALL_HOST}/sdl2/share/aclocal/sdl2.m4" \
+    /usr/share/aclocal/sdl2.m4;
+RUN \
+  ./autogen.sh && autoupdate; \
   rm -rf aclocal.m4 autom4te.cache; \
   autoreconf --force --install; \
   ./configure \
-  --prefix=/tmp/vendor/linux/sdl2_ttf \
-  --with-freetype-prefix=/tmp/vendor/linux/freetype
+  --prefix=${INSTALL_PREFIX}/${INSTALL_HOST}/sdl2_ttf \
+  --with-freetype-prefix=${INSTALL_PREFIX}/${INSTALL_HOST}/freetype \
+  --with-sdl-exec-prefix=${INSTALL_PREFIX}/${INSTALL_HOST}/sdl2
 RUN make
-RUN make -j1 install
+RUN make -j1 install && rm -rf ${WORKDIR}
 
-# sdl2_image
+# sdl2_image v2.0.0
+#FROM i8degrees/nomlib-builder:${VERSION} AS sdl2-image
 
-WORKDIR /tmp/sdl2_image.git
+ARG WORKDIR=/tmp/sdl2_image.git
+
+# env
+ARG GIT_URL="https://github.com/libsdl-org/SDL_image.git"
+ARG GIT_TAG=release-2.0.0
+
+WORKDIR ${WORKDIR}
 RUN apt-get update; \
     apt-get install -y --no-install-recommends \
-    autoconf \
-    autogen \
-    automake \
-    build-essential \
-    bzip2 \
-    cmake \
-    curl \
-    file \
-    git \
-    git-lfs \
-    libc6 \
     libjpeg62-turbo \
     libjpeg62-turbo-dev \
-    libpng16-16t64 \
     libpng-dev \
-    libtiff6 \
+    libpng16-16t64 \
     libtiff-dev \
+    libtiff6 \
     libwebp7 \
     libwebpdemux2 \
-    make \
-    pandoc \
-    patch \
-    pkg-config \
-    python3 \
-    python3-pip \
-    xdg-utils \
-    zip \
-    zstd \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && true
-RUN git clone \
-  "https://github.com/libsdl-org/SDL_image.git" /tmp/sdl2_image.git
-#RUN git checkout release-${SDL2_IMAGE_VERSION}
-RUN git checkout release-2.0.0
+RUN git clone ${GIT_URL} ${WORKDIR}
+RUN git checkout ${GIT_TAG}
 #RUN git switch -c release-2.0.0
 
-RUN \
-  clang++ --version >> clang.version; \
-  cmake --version >> cmake.version;
-
-RUN ls -lhas /tmp/sdl2_image.git
-RUN CC=/usr/bin/clang CXX=/usr/bin/clang++
 RUN ./autogen.sh; \
     ./configure \
-      --with-sdl-prefix=/tmp/vendor/linux/sdl2 \
-      --prefix=/tmp/vendor/linux/sdl2_image
+      --with-sdl-prefix="${INSTALL_PREFIX}/${INSTALL_HOST}/sdl2" \
+      --prefix="${INSTALL_PREFIX}/${INSTALL_HOST}/sdl2_image"
 RUN make
-RUN make -j1 install
+RUN make -j1 install && rm -rf ${WORKDIR}
 
-# libRocket
+# libRocket v1.3.0
+#FROM i8degrees/nomlib-builder:${VERSION} AS librocket
+
+# TODO: replace with RmlUI source tree
+ARG WORKDIR=/tmp/libRocket.git
+
+ARG NAME=libRocket
+ARG VERSION=1.3.0
+ARG GIT_URL="https://github.com/i8degrees/libRocket.git"
+ARG GIT_TAG=dev
 
 RUN apt-get update; \
     apt-get install -y --no-install-recommends \
-    autoconf \
-    autogen \
-    automake \
-    build-essential \
-    bzip2 \
-    cmake \
-    curl \
-    file \
-    git \
-    git-lfs \
-    libc6 \
-    libfreetype-dev \
-    libfreetype6 \
     liblua5.1-0 \
     liblua5.1-0-dev \
-    libtool \
-    make \
-    pandoc \
-    patch \
-    pkg-config \
-    python3 \
-    python3-pip \
-    xdg-utils \
-    zip \
-    zstd \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && true
-RUN git clone \
-  "https://github.com/i8degrees/libRocket.git" /tmp/librocket.git
+RUN git clone ${GIT_URL} ${WORKDIR}
 
-WORKDIR /tmp/librocket.git
-RUN git checkout dev
-RUN mkdir build
+WORKDIR ${WORKDIR}
+RUN git checkout ${GIT_TAG} && mkdir build
 
-WORKDIR /tmp/librocket.git/build
-RUN \
-  clang++ --version >> clang.version; \
-  cmake --version >> cmake.version;
+WORKDIR ${WORKDIR}/build
 # CXXFLAGS is used by cmake to init CMAKE_CXX_FLAGS
 # CXXFLAGS=-Wno-register; cmake \
 RUN cmake \
+  -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
   -DCMAKE_CXX_STANDARD=14 \
   -DCMAKE_CXX_STANDARD_REQUIRED=on \
-  -DCMAKE_C_COMPILER=/usr/bin/clang \
-  -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
-  -DCMAKE_INSTALL_PREFIX=/tmp/vendor/linux/librocket \
+  -DCMAKE_C_COMPILER=${CC} \
+  -DCMAKE_CXX_COMPILER=${CXX} \
+  -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}/${INSTALL_HOST}/libRocket" \
   -DBUILD_SAMPLES=off \
   -DBUILD_LUA_BINDINGS=on \
-  -DCMAKE_BUILD_TYPE=DEBUG \
 ../Build
 RUN make
-RUN make -j1 install
+RUN make -j1 install && rm -rf ${WORKDIR}
 
+# Patch the cmake module location
+#RUN \
+  #mkdir -p "${INSTALL_PREFIX}/${INSTALL_HOST}/libRocket/lib/cmake/libRocket/"; \
+  #cp -av "${INSTALL_PREFIX}/${INSTALL_HOST}/libRocket/lib/libRocket/cmake/libRocket/*" \
+#"${INSTALL_PREFIX}/${INSTALL_HOST}/libRocket/lib/cmake/libRocket/"
+
+#FROM i8degrees/nomlib-builder:${VERSION} AS libsndfile
 # libsndfile
 
+# env
+ARG GIT_URL="https://github.com/libsndfile/libsndfile.git"
+ARG GIT_TAG=1.0.25
+ARG WORKDIR=/tmp/libsndfile.git
+
+WORKDIR ${WORKDIR}
 RUN apt-get update; \
     apt-get install -y --no-install-recommends \
-    autoconf \
-    autogen \
-    automake \
-    build-essential \
-    bzip2 \
-    cmake \
-    curl \
-    file \
-    git \
-    git-lfs \
     libasound2t64 \
-    libc6 \
     libflac-dev \
     libmp3lame-dev \
     libmpg123-dev \
     libogg-dev \
     libopus-dev \
-    libtool \
     libvorbis-dev \
-    make \
-    pandoc \
-    patch \
-    pkg-config \
-    python3 \
-    python3-pip \
-    xdg-utils \
-    zip \
-    zstd \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && true
-RUN git clone \
-  "https://github.com/libsndfile/libsndfile.git" \
-/tmp/libsndfile.git
+RUN git clone "${GIT_URL}" ${WORKDIR}
+RUN git switch -c $GIT_TAG && mkdir build
 
-WORKDIR /tmp/libsndfile.git
-RUN git switch -c 1.0.25 && mkdir build
-
-WORKDIR /tmp/libsndfile.git/build
-RUN \
-  clang++ --version >> clang.version; \
-  cmake --version >> cmake.version;
+WORKDIR ${WORKDIR}/build
 RUN cmake \
-  -DCMAKE_C_COMPILER=/usr/bin/clang \
-  -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+  -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+  -DCMAKE_C_COMPILER=${CC} \
+  -DCMAKE_CXX_COMPILER=${CXX} \
   -DBUILD_SHARED_LIBS=1 \
-  -DCMAKE_INSTALL_PREFIX=/tmp/vendor/linux/libsndfile \
-  -DCMAKE_BUILD_TYPE=DEBUG \
+  -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}/${INSTALL_HOST}/libsndfile" \
   -DBUILD_EXAMPLES=off \
-.. 
-RUN make
-RUN make -j1 install
-
-
-# openal
-
-# freetype2
-
-# gtest
-WORKDIR /tmp/gtest.git
-RUN git clone "https://github.com/google/googletest" \
-  /tmp/gtest.git
-RUN git checkout v1.8.x && mkdir build
-
-WORKDIR /tmp/gtest.git/build
-RUN \
-  clang++ --version >> clang.version; \
-  cmake --version >> cmake.version;
-RUN cmake \
-  -DCMAKE_C_COMPILER=/usr/bin/clang \
-  -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
-  -DBUILD_SHARED_LIBS=1 \
-  -DCMAKE_INSTALL_PREFIX=/tmp/vendor/linux/gtest \
+  -DBUILD_PROGRAMS=off \
 ..
 RUN make
-RUN make -j1 install
+RUN make -j1 install && rm -rf ${WORKDIR}
+
+# openal v1.17.2
+#FROM i8degrees/nomlib-builder:${VERSION} AS openal
+
+# env
+#ARG GIT_TAG=1.25.2
+ARG GIT_TAG=openal-soft-1.17.2
+ARG GIT_URL=https://github.com/kcat/openal-soft
+ARG WORKDIR=/tmp/openal.git
+
+# TODO(JEFF): Add libpipewire-0.3.0-dev and
+# libpipewire-0.3.0 for OpenAL support.
+# TODO(JEFF): Tell OpenAL where libsndfile is located so it
+# is capable of loading audio formats beyond WAVE.
+WORKDIR ${WORKDIR}
+RUN apt-get update; \
+    apt-get install -y --no-install-recommends \
+    libasound2-dev \
+    libasound2t64 \
+    libpulse-dev \
+    libpulse0 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && true
+RUN git clone "${GIT_URL}" ${WORKDIR}
+#RUN git checkout ${GIT_TAG} && mkdir build
+RUN git switch -c ${GIT_TAG}
+
+WORKDIR ${WORKDIR}/build
+RUN cmake \
+  -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+  -DCMAKE_C_COMPILER=${CC} \
+  -DCMAKE_CXX_COMPILER=${CXX} \
+  -DBUILD_SHARED_LIBS=1 \
+  -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}/${INSTALL_HOST}/openal" \
+..
+RUN make
+RUN make -j1 install && rm -rf ${WORKDIR}
+
+# gtest
+#FROM i8degrees/nomlib-builder:${VERSION} AS gtest
+
+ARG WORKDIR=/tmp/gtest.git
+
+# env
+ARG GIT_TAG=v1.8.x
+ARG GIT_URL="https://github.com/google/googletest"
+ARG WORKDIR=/tmp/gtest.git
+
+WORKDIR ${WORKDIR}
+RUN git clone ${GIT_URL} ${WORKDIR}
+RUN git checkout ${GIT_TAG} && mkdir build
+
+WORKDIR ${WORKDIR}/build
+
+# FIXME(JEFF): We must use G++ to build GTest, otherwise we receive errors when 
+# linking to the static gtest library, i.e.: 
+#
+# /usr/bin/ld: /app/vendor/linux/gtest/lib/libgtest.a(gtest-all.cc.o): warning: relocation against `_ZTVN7testing8internal17StreamingListenerE' in read-only section `.text._ZN7testing8internal17StreamingListenerD2Ev[_ZN7testing8internal17StreamingListenerD2Ev]'
+# /usr/bin/ld: /app/vendor/linux/gtest/lib/libgtest.a(gtest-all.cc.o): relocation R_X86_64_PC32 against symbol `_ZN7testing8UnitTestD1Ev' can not be used when making a shared object; recompile with -fPIC
+# NOTE(JEFF): This removes `-Werror=maybe-uninitialized` from the default compile 
+# flags that are set from internal_utils.cmake at line 105.
+
+# IMPORTANT(JEFF): `-DBUILD_SHARED_LIBS=0` so we can generate a static 
+# library for gtest, i.e.: libgtest.a
+#-DCMAKE_C_COMPILER=/usr/bin/gcc \
+#-DCMAKE_CXX_COMPILER=/usr/bin/g++ \
+RUN \
+  cmake \
+  -DBUILD_GMOCK=off \
+  -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+  -DCMAKE_CXX_FLAGS="-Wall -Wshadow -Wno-maybe-uninitialized -fPIC" \
+  -DCMAKE_C_COMPILER=${CC} \
+  -DCMAKE_CXX_COMPILER=${CXX} \
+  -DBUILD_SHARED_LIBS=0 \
+  -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}/${INSTALL_HOST}/gtest" \
+..
+RUN make
+RUN make -j1 install && rm -rf ${WORKDIR}
 
 # jsoncpp
+#FROM i8degrees/nomlib-builder:${VERSION} AS jsoncpp
+ARG WORKDIR=/tmp/jsoncpp.git
+#RUN [ -d "${WORKDIR}" ] && rm "${WORKDIR}" && mkdir "${WORKDIR}"
 
-WORKDIR /tmp/jsoncpp.git
-RUN apt-get update; \
-    apt-get install -y --no-install-recommends \
-    autoconf \
-    autogen \
-    automake \
-    build-essential \
-    bzip2 \
-    cmake \
-    curl \
-    file \
-    git \
-    git-lfs \
-    libc6 \
-    libtool \
-    make \
-    patch \
-    pkg-config \
-    python3 \
-    python3-pip \
-    xdg-utils \
-    zip \
-    zlib1g-dev \
-    zstd \
-    zstd \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && true
-RUN git clone \
-  "https://github.com/open-source-parsers/jsoncpp.git" \
-/tmp/jsoncpp.git
-RUN mkdir -p /tmp/jsoncpp.git/dist
-WORKDIR /tmp/jsoncpp.git
-#RUN git switch -c svn-release-0.6.0-rc2
-# NOTE(JEFF): build compatible with svn-release-0.6.0-rc2
-# branch, but not binary compatible
-RUN git switch -c v0.7.0 && mkdir build
+# env
+ARG GIT_URL="https://github.com/open-source-parsers/jsoncpp.git"
+ARG GIT_TAG=v0.7.0
 
-WORKDIR /tmp/jsoncpp.git/build
-RUN \
-  clang++ --version >> clang.version; \
-  cmake --version >> cmake.version;
-WORKDIR /tmp/jsoncpp.git
+WORKDIR ${WORKDIR}
+RUN git clone ${GIT_URL} ${WORKDIR}
+RUN mkdir -p dist build
+
+# NOTE(JEFF): build compatible with svn-release-0.6.0-rc2 branch, but not binary 
+# compat as per tag release
+RUN git switch -c ${GIT_TAG}
+
+WORKDIR ${WORKDIR}
 RUN python3 amalgamate.py
-# IMPORTANT(JEFF): The contents of dist is our install prefix
-#   /jsoncpp/dist/ -> /vendor/common/jsoncpp
 
-# /vendor is a bind mount that is only available when the end-user
-# opts to run this image with a `-v` param
-#RUN if findmnt /vendor 1>/dev/null; then  diff -r /jsoncpp/dist /vendor/common/jsoncpp; fi
-RUN mkdir -p /tmp/vendor/linux/common/jsoncpp
-RUN cp -av /tmp/jsoncpp.git/dist/* /tmp/vendor/linux/common/jsoncpp
-#COPY ["/tmp/jsoncpp.git/dist/*", "/tmp/vendor/linux/common/jsoncpp"]
-
-# NOTE(JEFF): The following configuration produces this project
-# as a shared library
-#RUN cmake \
-#  -DCMAKE_INSTALL_PREFIX=/tmp/vendor/common/jsoncpp \
-#..
-#RUN make
-#RUN make -j1 install
-
-# rapidxml
-
-WORKDIR /tmp/rapidxml.git
-RUN apt-get update; \
-    apt-get install -y --no-install-recommends \
-    build-essential \
-    curl \
-    file \
-    git \
-    make \
-    patch \
-    pkg-config \
-    zip \
-    zlib1g-dev \
-    zstd \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && true
-RUN git clone \
-  "https://github.com/Fe-Bell/RapidXML" \
-/tmp/rapidxml.git
-WORKDIR /tmp/rapidxml.git
-#RUN git checkout master && mkdir build dist
-RUN git switch -c 1x && mkdir build #dist
-
-WORKDIR /tmp/rapidxml.git/build
+# FIXME(JEFF): We should not have to patch the location of the header files 
+# below!
 RUN \
-  clang++ --version >> clang.version; \
-  cmake --version >> cmake.version;
-WORKDIR /tmp/rapidxml.git
-# alt install
-#COPY \
-#/rapidxml/RapidXML/*.cpp \
-#  /rapidxml/RapidXML/*.hpp \
-#  /rapidxml/RapidXML/*.h \
-# /rapidxml/dist
-# FIXME
-RUN mkdir -p /tmp/vendor/linux/common/rapidxml
-RUN cp -av /tmp/rapidxml.git/RapidXML/* /tmp/vendor/linux/common/rapidxml
-#COPY ["/rapidxml/RapidXML/*", "/tmp/vendor/linux/common/rapidxml"]
+  mkdir -p "${INSTALL_PREFIX}/jsoncpp" && \
+  cp -av /tmp/jsoncpp.git/dist/* "${INSTALL_PREFIX}/jsoncpp" && \
+  rm -rf ${WORKDIR};
+RUN \
+  cd "${INSTALL_PREFIX}/jsoncpp"; \
+  ln -sf ./json/json.h ./json.h && \
+  ln -sf ./json/json-forwards.h ./json-forwards.h;
 
-# /vendor is a bind mount that is only available when the end-user
-# opts to run this image with a `-v` param
-#RUN if findmnt /vendor 1>/dev/null; then diff -r /rapidxml/dist /vendor/common/rapidxml/; fi
+# rapidxml v1.13 by discord
+#FROM i8degrees/nomlib-builder:${VERSION} AS rapidxml
+
+ARG WORKDIR=/tmp/rapidxml.git
+#RUN [ -d "${WORKDIR}" ] && rm "${WORKDIR}" && mkdir "${WORKDIR}"
+# env
+ARG GIT_TAG=master
+ARG GIT_URL="https://github.com/discord/rapidxml"
+
+WORKDIR ${WORKDIR}
+RUN git clone ${GIT_URL} ${WORKDIR}
+RUN git checkout master
+
+# https://sourceforge.net/p/rapidxml/bugs/16/
+COPY \
+  ./patches/rapidxml_bug16.patch ${WORKDIR}/rapidxml_bug16.patch
+RUN git apply "${WORKDIR}/rapidxml_bug16.patch"
+
+WORKDIR ${WORKDIR}
+RUN \
+  mkdir -p "${INSTALL_PREFIX}/rapidxml" && \
+  cp -av /tmp/rapidxml.git/* "${INSTALL_PREFIX}/rapidxml" && \
+  rm -rf ${WORKDIR};
+
+# tclap v1.x
+#FROM i8degrees/nomlib-builder:${VERSION} AS tclap
+ARG WORKDIR=/tmp/tclap.git
+
+# env
+# TODO: github mirror
+ARG GIT_URL="https://git.code.sf.net/p/tclap/code"
+ARG GIT_TAG=12cee38782897cfe60a1611615c200c45cd99eaf
+
+WORKDIR ${WORKDIR}
+RUN git clone ${GIT_URL} ${WORKDIR}
+#RUN git switch -c ${GIT_TAG}
+RUN git checkout ${GIT_TAG}
+
+#COPY \
+  #configure.patch /tmp/tclap.git/configure.patch
+# do not build docs, examples or tests
+#RUN git apply configure.patch
+RUN \
+   mv configure.in configure.ac || true; \
+  ./autotools.sh; \
+  ./autoupdate; \
+  ./configure \
+    --prefix="${INSTALL_PREFIX}/tclap"
+RUN make
+RUN make -j1 install \
+  && rm -rf ${WORKDIR} && true
+
+#FROM freetype AS install-freetype
+
+#ARG INSTALL_PREFIX=/app/vendor
+#ARG INSTALL_HOST=linux
+#COPY cp -av  ${INSTALL_PREFIX}/${INSTALL_HOST}
+
+# EOF
+
+CMD ["/bin/bash"]
 
