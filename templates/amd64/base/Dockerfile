@@ -31,8 +31,6 @@ RUN set -eux \
     automake \
     bash \
     bzip2 \
-    clang-tidy \
-    clang-tools-19 \
     cmake \
     coreutils \
     curl \
@@ -43,7 +41,12 @@ RUN set -eux \
     graphviz \
     less \
     libc6 \
+    libflac14 \
+    libmpg123-0t64 \
+    libopus0 \
     libtool \
+    libvorbis0a \
+    libvorbisenc2 \
     make \
     mesa-common-dev \
     pandoc \
@@ -60,10 +63,9 @@ RUN set -eux \
     zstd \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
-
     && true
-RUN update-alternatives \
-  --install /usr/bin/clang-cl clang-cl /usr/bin/clang-cl-19 50
+#RUN update-alternatives \
+#  --install /usr/bin/clang-cl clang-cl /usr/bin/clang-cl-19 50
 
 # Cleanup 2GB of build files unused by us (osxcross) 
 RUN \
