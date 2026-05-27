@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM debian:13.4-slim AS config-windows
+FROM debian:13-slim AS windows
 
 # Default number of CPU cores to utilize
 ARG CPU_CORES=2
@@ -112,10 +112,13 @@ RUN \
   --host ${HOST_CPU} \
   --target ${TARGET_CPU}
 
-FROM config-windows AS install_sdk
+FROM windows AS install_sdk
+
+#ARG INSTALL_PREFIX=/app/vendor
+#ARG INSTALL_HOST=windows
+
 RUN mkdir -p ${INSTALL_PREFIX}/${INSTALL_HOST}/msvc
-RUN ls -lhas msvc downloads
-#RUN cp ./msvc/ ${INSTALL_PREFIX}/${INSTALL_HOST}/msvc \
+RUN rsync -av ./msvc/ ${INSTALL_PREFIX}/${INSTALL_HOST}/msvc
   #&& true
 #&& rm -rf ./downloads \
 #cmake --preset debug-clang-cl
