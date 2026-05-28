@@ -411,13 +411,53 @@ RUN make
 RUN make -j1 install \
   && rm -rf ${WORKDIR} && true
 
-#FROM freetype AS install-freetype
+ARG GIT_TAG="master"
+ARG GIT_URL="https://github.com/mikke89/RmlUI"
+ARG WORKDIR="/tmp/rmlui"
 
-#ARG INSTALL_PREFIX=/app/vendor
-#ARG INSTALL_HOST=linux
-#COPY cp -av  ${INSTALL_PREFIX}/${INSTALL_HOST}
+WORKDIR "${WORKDIR}"
+RUN apt-get update; \
+    apt-get install -y --no-install-recommends \
+    autoconf \
+    autogen \
+    automake \
+    bzip2 \
+    cmake \
+    curl \
+    file \
+    git \
+    libc6 \
+    libfreetype-dev \
+    libfreetype6 \
+    liblua5.1-0 \
+    liblua5.1-0-dev \
+    libtool \
+    make \
+    pandoc \
+    patch \
+    pkg-config \
+    xdg-utils \
+    zip \
+    zstd \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && true
+RUN git clone "${GIT_URL}" "${WORKDIR}" && \
+  git chekout "${GIT_TAG}" && mkdir build
 
-# EOF
+WORKDIR /tmp/rmlui/build
+RUN \
+  clang++ --version >> clang.version; \
+  cmake --version >> cmake.version;
+RUN cmake \
+  -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}/${INSTALL_HOST}/rmlui" \
+  -DBUILD_SAMPLES=off \
+  -DBUILD_LUA_BINDINGS=on \
+  -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+  -DROCKET_DEBUG=on \
+  -DCMAKE_VERBOSE_MAKEFILE=1 ../Build
+RUN make
+#RUN make -j1 install
 
 CMD ["/bin/bash"]
 
