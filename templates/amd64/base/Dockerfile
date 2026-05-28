@@ -4,21 +4,22 @@
 # syntax=docker/dockerfile:1
 #
 
-ARG VERSION="0.13.1"
-ARG BASE_IMAGE="joseluisq/docker-osxcross:1.0.0-beta.2"
-#ENV VERSION=${VERSION}
-
+ARG BASE_IMAGE="debian:13"
 FROM "${BASE_IMAGE}"
+
+ARG VERSION="0.13.1"
+ARG BASE_IMAGE="debian:13"
 
 # Default number of CPU cores to utilize
 ARG CPU_CORES=2
 ENV MAKEFLAGS="-j${CPU_CORES}"
+ENV VERSION=${VERSION}
 
 ARG INSTALL_PREFIX=/app/vendor
 ARG INSTALL_HOST=linux
 
-LABEL version="0.13.1" \
-    tag="i8degrees/nomlib-builder:0.13.1-amd64" \
+LABEL version="${VERSION}" \
+    tag="i8degrees/nomlib-builder:${VERSION}-amd64" \
     description="Docker image for cross-compiling nomlib for Linux (musl libc) & macOS (osxcross)." \
     maintainer="Jeffrey Carpenter <i8degrees@gmail.com>"
 
@@ -41,6 +42,7 @@ RUN set -eux \
     graphviz \
     less \
     libc6 \
+    clang \
     libflac14 \
     libmpg123-0t64 \
     libopus0 \
@@ -68,8 +70,8 @@ RUN set -eux \
 #  --install /usr/bin/clang-cl clang-cl /usr/bin/clang-cl-19 50
 
 # Cleanup 2GB of build files unused by us (osxcross) 
-RUN \
-    rm -rf /usr/local/osxcross/build
+#RUN \
+#    rm -rf /usr/local/osxcross/build
 
 # Static linking for C++ code
 RUN set -eux \
@@ -110,9 +112,6 @@ RUN set -eux \
     && cmake --version \
     && clang --version \
     && clang++ --version \
-    && clang-cl --version \
-    && gcc --version \
-    && g++ --version \
     && python3 --version \
     && true
 RUN set -eux \
