@@ -41,6 +41,13 @@ amd64-windows:
 		--network=host \
 		--build-arg CPU_CORES=6 \
 	templates/amd64/windows --push
+
+amd64-macos:
+	docker build \
+		-t $(REPOSITORY):$(TAG)-amd64-macos \
+		--network=host \
+		--build-arg CPU_CORES=6 \
+	templates/amd64/macos --push
 .PHONY: windows
 
 # amd64-copy-libs-v2
@@ -56,15 +63,34 @@ amd64-copy-libs:
 		-w "${INSTALL_PREFIX}" \
 		$(REPOSITORY):$(TAG)-amd64-windows \
 				bash -c 'if findmnt /dist; then rsync -avc ${INSTALL_PREFIX}/* /dist; fi'
+	@docker run --rm -it \
+		-v $(PWD)/vendor:/dist \
+		-w "${INSTALL_PREFIX}" \
+		$(REPOSITORY):$(TAG)-amd64-macos \
+				bash -c 'if findmnt /dist; then rsync -avc ${INSTALL_PREFIX}/* /dist; fi'
 
 # amd64-build-libs-volume-v2:
 amd64-build-libs-volume:
 	@docker volume rm nomlib-libs && docker volume create nomlib-libs
+	# linux
 	@docker run --rm -it \
 		-v nomlib-libs:/dist \
 		-w "${INSTALL_PREFIX}" \
 		$(REPOSITORY):$(TAG)-amd64-libs \
 				bash -c 'if findmnt /dist; then rsync --exclude=html/* -avc ${INSTALL_PREFIX}/* /dist; fi'
+	#@docker volume rm nomlib-libs-windows && docker volume create nomlib-libs-windows
+	# windows
+	@docker run --rm -it \
+		-v nomlib-libs:/dist \
+		-w "${INSTALL_PREFIX}" \
+		$(REPOSITORY):$(TAG)-amd64-windows \
+				bash -c 'if findmnt /dist; then rsync -avc ${INSTALL_PREFIX}/* /dist; fi'
+	# MacOSX
+	#@docker run --rm -it \
+		#-v nomlib-libs:/dist \
+		#-w "${INSTALL_PREFIX}" \
+		#$(REPOSITORY):$(TAG)-amd64-macos \
+				#bash -c 'if findmnt /dist; then rsync -avc ${INSTALL_PREFIX}/* /dist; fi'
 
 # amd64-run-libs-v1
 _amd64-run-libs:

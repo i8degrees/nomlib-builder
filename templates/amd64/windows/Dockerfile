@@ -1,6 +1,17 @@
 # syntax=docker/dockerfile:1
 
-FROM debian:13-slim AS windows
+ARG BASE_IMAGE="debian:13-slim"
+
+FROM ${BASE_IMAGE} AS windows-build
+
+ARG VERSION="0.13.1"
+LABEL version="${VERSION}" \
+    tag="i8degrees/nomlib-builder:${VERSION}-amd64-windows" \
+    description="Docker image for cross-compiling nomlib on 64-bit Linux to macOS (osxcross)." \
+    maintainer="Jeffrey Carpenter <i8degrees@gmail.com>"
+
+ARG VERSION="0.13.1"
+ARG BASE_IMAGE="debian:13-slim"
 
 # Default number of CPU cores to utilize
 ARG CPU_CORES=2
@@ -112,16 +123,15 @@ RUN \
   --host ${HOST_CPU} \
   --target ${TARGET_CPU}
 
-FROM windows AS install_sdk
+FROM windows-build AS install_sdk
 
 #ARG INSTALL_PREFIX=/app/vendor
 #ARG INSTALL_HOST=windows
 
-RUN mkdir -p ${INSTALL_PREFIX}/${INSTALL_HOST}/msvc
-RUN rsync -av ./msvc/ ${INSTALL_PREFIX}/${INSTALL_HOST}/msvc
-  #&& true
-#&& rm -rf ./downloads \
-#cmake --preset debug-clang-cl
+RUN mkdir -p ${INSTALL_PREFIX}/${INSTALL_HOST}/msvc; \
+  rsync -avc ./msvc/ ${INSTALL_PREFIX}/${INSTALL_HOST}/msvc; \
+  rm -rf ./downloads ./msvc \
+  && true
 
 WORKDIR /app
 
