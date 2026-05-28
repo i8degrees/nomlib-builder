@@ -351,11 +351,11 @@ RUN python3 amalgamate.py
 # FIXME(JEFF): We should not have to patch the location of the header files 
 # below!
 RUN \
-  mkdir -p "${INSTALL_PREFIX}/jsoncpp" && \
-  cp -av /tmp/jsoncpp.git/dist/* "${INSTALL_PREFIX}/jsoncpp" && \
+  mkdir -p "${INSTALL_PREFIX}/jsoncpp/include" && \
+  cp -av /tmp/jsoncpp.git/dist/* "${INSTALL_PREFIX}/jsoncpp/include" && \
   rm -rf ${WORKDIR};
 RUN \
-  cd "${INSTALL_PREFIX}/jsoncpp"; \
+  cd "${INSTALL_PREFIX}/jsoncpp/include"; \
   ln -sf ./json/json.h ./json.h && \
   ln -sf ./json/json-forwards.h ./json-forwards.h;
 
