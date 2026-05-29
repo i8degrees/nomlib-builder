@@ -75,20 +75,20 @@ RUN set -eux \
 RUN \
     rm -rf /usr/local/osxcross/build
 
-ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
-ENV PKG_CONFIG_PATH=${INSTALL_PREFIX}/${INSTALL_HOST}/freetype/lib/pkgconfig:/usr/local/lib/pkgconfig:/usr/lib/pkgconfig
-ENV CC=x86_64-apple-darwin22.4-clang
-ENV CXX=x86_64-apple-darwin22.4-clang++
-ENV MACOSX_DEPLOYMENT_TARGET=10.9
+ENV PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
+ENV PKG_CONFIG_PATH="${INSTALL_PREFIX}/${INSTALL_HOST}/freetype/lib/pkgconfig:/usr/local/lib/pkgconfig:/usr/lib/pkgconfig"
+ENV CC="x86_64-apple-darwin22.4-clang"
+ENV CXX="x86_64-apple-darwin22.4-clang++"
+ENV MACOSX_DEPLOYMENT_TARGET="10.9"
 
-ENV OSXCROSS_TARGET_DIR=/usr/local/osxcross/target
-ENV OSXCROSS_SDK=${OSXCROSS_TARGET_DIR}/SDK/MacOSX13.3.sdk
-ENV OSXCROSS_TARGET=x86_64
-ENV OSXCROSS_HOST=${OSXCROSS_TARGET}-apple-darwin22.4
-ENV OSXCROSS_VERSION_MIN=${MACOSX_DEPLOYMENT_TARGET}
-
-# Target env (arch)
-ENV TARGET=${OSXCROSS_TARGET}
+ENV OSXCROSS_TARGET_DIR="/usr/local/osxcross/target"
+ENV OSXCROSS_SDK="${OSXCROSS_TARGET_DIR}/SDK/MacOSX13.3.sdk"
+ENV OSXCROSS_TARGET="x86_64"
+ENV OSXCROSS_HOST="${OSXCROSS_TARGET}-apple-darwin22.4"
+ENV OSXCROSS_VERSION_MIN="${MACOSX_DEPLOYMENT_TARGET}"
+ENV MACPORTS_PREFIX="${OSXCROSS_TARGET}/macports/pkgs/opt/local"
+# Target CPU env (arch)
+ENV TARGET="${OSXCROSS_TARGET}"
 
 # pkg-config related environment variables
 ENV PKG_CONFIG_ALLOW_CROSS=1
