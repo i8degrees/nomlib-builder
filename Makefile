@@ -18,14 +18,6 @@ amd64-base:
 		templates/amd64/base
 .PHONY: amd64-base
 
-amd64-run:
-	@docker run --rm -it \
-		-v $(PWD)/dist/usr/local:/dist \
-		-w /tmp/vendor \
-		$(REPOSITORY):$(TAG)-amd64 \
-				bash
-.PHONY: amd64-run
-
 # TODO(JEFF): After a successful build, we need the targets `amd64-copy-libs` and 
 # `amd64-build-libs-volume` to be ran
 amd64-libs:
