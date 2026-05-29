@@ -5,6 +5,7 @@ TAG ?= 0.13.1
 
 INSTALL_PREFIX ?= /app/vendor
 INSTALL_HOST ?= linux
+CPU_CORES="$(($(nproc)-1))"
 
 # AMD64 Tasks
 
@@ -13,7 +14,7 @@ amd64-base:
 		-t $(REPOSITORY):$(TAG)-amd64 \
 		--network=host \
 		--push \
-		--build-arg CPU_CORES=6 \
+		--build-arg CPU_CORES=${CPU_CORES} \
 		templates/amd64/base
 .PHONY: amd64-base
 
@@ -31,7 +32,7 @@ amd64-libs:
 	docker build \
 		-t $(REPOSITORY):$(TAG)-amd64-libs \
 		--network=host \
-		--build-arg CPU_CORES=6 \
+		--build-arg CPU_CORES=${CPU_CORES} \
 		--push \
 		templates/amd64/libs
 
@@ -39,19 +40,18 @@ amd64-windows:
 	docker build \
 		-t $(REPOSITORY):$(TAG)-amd64-windows \
 		--network=host \
-		--build-arg CPU_CORES=6 \
+		--build-arg CPU_CORES=${CPU_CORES} \
 	templates/amd64/windows --push
 
 amd64-macos:
 	docker build \
 		-t $(REPOSITORY):$(TAG)-amd64-macos \
 		--network=host \
-		--build-arg CPU_CORES=6 \
+		--build-arg CPU_CORES=${CPU_CORES} \
 	templates/amd64/macos --push
 .PHONY: windows
 
-# amd64-copy-libs-v2
-amd64-copy-libs:
+amd64-copy-libs-local:
 	@rm -rf "$(PWD)/vendor" && mkdir -p "$(PWD)/vendor"
 	@docker run --rm -it \
 		-v $(PWD)/vendor:/dist \
@@ -69,8 +69,7 @@ amd64-copy-libs:
 		$(REPOSITORY):$(TAG)-amd64-macos \
 				bash -c 'if findmnt /dist; then rsync -avc ${INSTALL_PREFIX}/* /dist; fi'
 
-# amd64-build-libs-volume-v2:
-amd64-build-libs-volume:
+amd64-copy-libs-volume:
 	@docker volume rm nomlib-libs && docker volume create nomlib-libs
 	# linux
 	@docker run --rm -it \
@@ -92,14 +91,6 @@ amd64-build-libs-volume:
 		#$(REPOSITORY):$(TAG)-amd64-macos \
 				#bash -c 'if findmnt /dist; then rsync -avc ${INSTALL_PREFIX}/* /dist; fi'
 
-# amd64-run-libs-v1
-_amd64-run-libs:
-	@docker run --rm -it \
-		-v $(PWD)/dist/usr/local:/dist \
-		-w /tmp/vendor \
-		$(REPOSITORY):$(TAG)-amd64-libs \
-			bash
-
 # amd64-run-libs-v2
 amd64-run-libs:
 	@docker run --rm -it \
@@ -110,7 +101,7 @@ amd64-run-libs:
 
 # Testing Tasks (inside the container)
 
-test-all: test-app test-zlib test-openssl
+test-all: test-app
 .PHONY: test-all
 
 test-app:
