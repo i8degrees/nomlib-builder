@@ -443,7 +443,7 @@ RUN apt-get update; \
     && rm -rf /var/lib/apt/lists/* \
     && true
 RUN git clone "${GIT_URL}" "${WORKDIR}" && \
-  git chekout "${GIT_TAG}" && mkdir build
+  git checkout "${GIT_TAG}" && mkdir build
 
 WORKDIR /tmp/rmlui/build
 RUN \
